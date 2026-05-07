@@ -10,7 +10,7 @@ from selenium.common.exceptions import TimeoutException
 
 STREAMLIT_URLS = [
     "https://estagio-sms.streamlit.app/",
-    "https://outra-app.streamlit.app/",
+    "https://sms-prof.streamlit.app/",
 ]
 
 def main():
