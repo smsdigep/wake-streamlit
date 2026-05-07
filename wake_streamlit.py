@@ -7,7 +7,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException
 
-STREAMLIT_URL = "https://estagio-sms.streamlit.app/" 
+
+STREAMLIT_URLS = [
+    "https://estagio-sms.streamlit.app/",
+    "https://outra-app.streamlit.app/",
+]
 
 def main():
     options = Options()
