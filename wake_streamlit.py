@@ -1,77 +1,41 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import TimeoutException
-import sys
+import asyncio
+from playwright.async_api import async_playwright
 
 STREAMLIT_URLS = [
     "https://estagio-sms.streamlit.app/",
     "https://sms-prof.streamlit.app/",
 ]
 
-def wake_app(driver, url):
-    print(f"Acessando {url}...")
-    driver.get(url)
+WAKE_TEXT = "Yes, get this app back up!"
 
-    wait = WebDriverWait(driver, 20)
+async def wake_app(page, url):
+    print(f"Acessando {url}")
+    await page.goto(url, wait_until="domcontentloaded", timeout=120000)
+    await page.wait_for_timeout(5000)
 
-    try:
-        button = wait.until(
-            EC.element_to_be_clickable((
-                By.XPATH,
-                "//button[contains(., 'Yes, get this app back up')]"
-            ))
-        )
-        print(f"Botão encontrado em {url}. Clicando...")
-        button.click()
+    wake_button = page.get_by_role("button", name=WAKE_TEXT)
 
-        try:
-            wait.until(
-                EC.invisibility_of_element_located((
-                    By.XPATH,
-                    "//button[contains(., 'Yes, get this app back up')]"
-                ))
-            )
-            print(f"App despertado com sucesso: {url}")
-        except TimeoutException:
-            print(f"Botão clicado, mas não sumiu em {url}")
-            return False
+    if await wake_button.count() > 0:
+        print(f"Botão de wake encontrado em {url}. Clicando...")
+        await wake_button.click()
+        await page.wait_for_timeout(60000)
+        print(f"Wake solicitado para {url}")
+    else:
+        print(f"App já aparenta estar acordado em {url}")
 
-    except TimeoutException:
-        print(f"Sem botão em {url}. App já estava acordado.")
-    
-    return True
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context()
+        page = await context.new_page()
 
-def main():
-    options = Options()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options
-    )
-
-    ok = True
-    try:
         for url in STREAMLIT_URLS:
-            result = wake_app(driver, url)
-            ok = ok and result
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        ok = False
-    finally:
-        driver.quit()
+            try:
+                await wake_app(page, url)
+            except Exception as e:
+                print(f"Erro em {url}: {e}")
 
-    if not ok:
-        sys.exit(1)
+        await browser.close()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
